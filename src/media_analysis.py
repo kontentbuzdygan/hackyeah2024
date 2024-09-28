@@ -1,4 +1,3 @@
-import dotenv
 from openai import Client
 from pydantic import BaseModel, Field
 
@@ -40,12 +39,11 @@ class AnaysisResults(BaseModel):
     )
 
 
-dotenv.load_dotenv()
+# TODO: Allow passing the file directly
+def analyze_audio(filename: str):
+    client = Client()
 
-client = Client()
-
-if False:
-    with open("C:\\Users\\jelni\\Downloads\\catcut_HY_2024_film_01.wav", "rb") as f:
+    with open(filename, "rb") as f:
         transcription = client.audio.transcriptions.create(
             file=f,
             model="whisper-1",
@@ -54,19 +52,17 @@ if False:
             timestamp_granularities=["segment"],
         )
 
-transcription = "Audytem objęliśmy 96 podmiotów, a łączna kwota badanych środków publicznych to około 100 mld zł. W toku działań stwierdziliśmy m.in. niegospodarne i niecelowe wydatkowanie środków publicznych, udzielenie dotacji podmiotów, które nie spełniały kryteriów konkursowych, które nie spełniały kryteriów konkursowych."
-
-
-result = client.beta.chat.completions.parse(
-    messages=[
-        {"content": transcription, "role": "user"},
-        {
-            "content": "Na podstawie powyższej transkrypcji wypowiedzi wypełnij model JSON.",
-            "role": "system",
-        },
-    ],
-    model="gpt-4o-2024-08-06",
-    response_format=AnaysisResults,
-)
-
-print(result.choices[0].message.parsed.model_dump_json(indent=2))
+        return client.beta.chat.completions.parse(
+            messages=[
+                {
+                    "content": transcription.text,
+                    "role": "user",
+                },
+                {
+                    "content": "Na podstawie powyższej transkrypcji wypowiedzi wypełnij model JSON.",
+                    "role": "system",
+                },
+            ],
+            model="gpt-4o-2024-08-06",
+            response_format=AnaysisResults,
+        )
