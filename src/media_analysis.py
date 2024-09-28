@@ -6,6 +6,7 @@ from typing import Literal
 
 import cv2
 import easyocr
+from fuzzywuzzy import fuzz
 from openai import Client
 from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
@@ -180,5 +181,18 @@ class Analyzer:
             for file in sorted(os.listdir(input_path))
         ]
 
-        subtitles = filter(lambda subtitle: subtitle, subtitles)
-        return list(dict.fromkeys(subtitles).keys())
+        subtitles = filter(lambda subtitle: subtitle.strip(), subtitles)
+        previous_subtitle = None
+
+        def is_duplicate(new_subtitle: str) -> bool:
+            nonlocal previous_subtitle
+
+            if previous_subtitle is None:
+                previous_subtitle = new_subtitle
+                return False
+
+            result = fuzz.ratio(previous_subtitle, new_subtitle)
+            previous_subtitle = new_subtitle
+            return result > 90
+
+        return list(filter(lambda subtitle: not is_duplicate(subtitle), subtitles))
