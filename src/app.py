@@ -1,4 +1,5 @@
 from datetime import timedelta
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import streamlit as st
@@ -56,10 +57,10 @@ if video:
     saved_frames = analyzer.get_frames(video_file.name)
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Przycinanie klatek filmu…")
-    cropped_frames = analyzer.crop_frames(saved_frames.name)
+    cropped_frames = analyzer.crop_frames(Path(saved_frames.name))
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Oddzielanie napisów…")
-    extracted_subtitles = analyzer.extract_subtitles(cropped_frames.name)
+    extracted_subtitles = analyzer.extract_subtitles(Path(cropped_frames.name))
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Analizowanie jakości napisów…")
