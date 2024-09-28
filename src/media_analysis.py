@@ -1,4 +1,5 @@
 from openai import Client
+from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
 
 
@@ -39,23 +40,26 @@ class AnaysisResults(BaseModel):
     )
 
 
-# TODO: Allow passing the file directly
-def analyze_audio(filename: str):
-    client = Client()
+class Analyzer:
+    def __init__(self):
+        self.client = Client()
 
-    with open(filename, "rb") as f:
-        transcription = client.audio.transcriptions.create(
-            file=f,
-            model="whisper-1",
-            response_format="verbose_json",
-            language="pl",
-            timestamp_granularities=["segment"],
-        )
+    # TODO: Allow passing the file directly
+    def transcribe(self, filename: str) -> TranscriptionVerbose:
+        with open(filename, "rb") as f:
+            return self.client.audio.transcriptions.create(
+                file=f,
+                model="whisper-1",
+                response_format="verbose_json",
+                language="pl",
+                timestamp_granularities=["segment"],
+            )
 
-        return client.beta.chat.completions.parse(
+    def analyze_transcription(self, transcription: str) -> AnaysisResults:
+        result = self.client.beta.chat.completions.parse(
             messages=[
                 {
-                    "content": transcription.text,
+                    "content": transcription,
                     "role": "user",
                 },
                 {
@@ -66,3 +70,5 @@ def analyze_audio(filename: str):
             model="gpt-4o-2024-08-06",
             response_format=AnaysisResults,
         )
+
+        return result.choices[0].message.parsed
