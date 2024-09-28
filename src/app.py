@@ -1,11 +1,8 @@
-import dotenv
 import streamlit as st
 from moviepy.editor import VideoFileClip
 from tempfile import NamedTemporaryFile
 from media_analysis import Analyzer
 from datetime import timedelta
-
-dotenv.load_dotenv()
 
 st.write(
     """
@@ -13,6 +10,13 @@ st.write(
     by **kontentbuzdygan**
     """
 )
+
+openai_api_key = st.text_input(
+    "OpenAI API key",
+    help="Please set up an account and provide your own API key",
+    type="password",
+)
+
 video = st.file_uploader("Upload the video you want to analyze")
 
 if video:
@@ -28,7 +32,7 @@ if video:
 
         # st.audio(audio_tmp.name)
 
-        analyzer = Analyzer()
+        analyzer = Analyzer(openai_api_key)
         transcription = analyzer.transcribe(audio_tmp.name)
 
         st.write("## Transcription")
