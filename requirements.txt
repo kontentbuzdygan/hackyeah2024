@@ -3,4 +3,4 @@ openai~=1.50.0
 python_dotenv~=1.0.0
 easyocr~=1.7.2
 moviepy~=1.0.3
-opencv-python-headless~-4.10.0.84
+opencv-python-headless~=4.10.0.84
