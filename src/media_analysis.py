@@ -103,7 +103,7 @@ class Analyzer:
             vidcap.set(cv2.CAP_PROP_POS_MSEC, (i * 3_000))
             success, image = vidcap.read()
 
-            if success is False:
+            if not success:
                 break
 
             cv2.imwrite(str(Path(temp_frames.name) / f"frame_{i}.png"), image)
@@ -114,9 +114,9 @@ class Analyzer:
         temp_dir = TemporaryDirectory()
 
         for file in os.listdir(input_path):
-            img = cv2.imread(input_path + "\\" + file)
+            img = cv2.imread(str(Path(input_path) / file))
             crop_img = img[918:1050, 460:1475]
-            cv2.imwrite(temp_dir.name + "\\" + file, crop_img)
+            cv2.imwrite(str(Path(temp_dir.name) / file), crop_img)
 
         return temp_dir
 

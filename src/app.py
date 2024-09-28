@@ -31,7 +31,7 @@ if video:
     progress_bar = st.progress(0 / STEP_COUNT, text="Oddzielanie dźwięku…")
 
     video_file = NamedTemporaryFile(delete_on_close=False)
-    video_file.write(video.getbuffer())
+    video_file.write(video.getvalue())
     video_file.close()
     clip = VideoFileClip(video_file.name)
     audio_file = NamedTemporaryFile(suffix=".mp3", delete_on_close=False)
