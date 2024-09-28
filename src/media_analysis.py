@@ -2,6 +2,7 @@ import itertools
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Literal
 
 import cv2
 import easyocr
@@ -10,11 +11,42 @@ from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
 
 
+class Tag(BaseModel):
+    tag: Literal[
+        "przerywniki",
+        # "za szybkie tempo",
+        "nadmierne powtórzenia",
+        "zmiana tematu wypowiedzi",
+        "trudne, za długie słowa",
+        "żargon",
+        "obcy język",
+        # "za długa pauza",
+        "za dużo liczb",
+        # "drugi plan",
+        # "odwracanie się",
+        "przekręcenia",
+        # "gestykulacja",
+        "przerywniki",
+        # "mimika",
+        # "za cicho",
+        # "szeptem",
+        "błędne słowa",
+        # "wypowiedź niezgodna z transkrypcją",
+        # "szum",
+        "za długie zdania",
+        "używanie strony biernej",
+        # "akcentowanie",
+        "za dużo liczb",
+        # "mówienie głośniej",
+    ]
+    przyklad: str
+
+
 class AspektyJezykowe(BaseModel):
     ocena: str = Field(
-        description="Ocena aspektów językowych wypowiedzi w nawiązaniu do prostego języka wraz z wyliczeniem wskaźników."
+        description="Ocena aspektów językowych wypowiedzi w nawiązaniu do prostego języka."
     )
-    tag: str = Field(description="Tag powyższej oceny.")
+    tagi: list[Tag] = Field(description="Tagi wypowiedzi z przykładami występowania.")
 
 
 class SentymentWypowiedzi(BaseModel):
@@ -75,11 +107,14 @@ class Analyzer:
             messages=[
                 {
                     "role": "user",
-                    "content": f"Treść wypowiedzi w filmie:\n{transcription}\n\nTreść napisów filmu:\n{"\n".join(subtitles)}",
+                    "content": f"Treść wypowiedzi w filmie:\n{transcription}\n\n"
+                    f"Treść napisów filmu:\n{"\n".join(subtitles)}",
                 },
                 {
                     "role": "system",
-                    "content": "Czy napisy są zgodne z treścią wypowiedzi? Czy zawierają jakieś błędy lub pomyłki?",
+                    "content": "Czy napisy są zgodne z treścią wypowiedzi? "
+                    "Czy zawierają jakieś błędy lub pomyłki? "
+                    "Napisz krótką informację.",
                 },
             ],
             model="gpt-4o-2024-08-06",
@@ -141,7 +176,8 @@ class Analyzer:
         reader = easyocr.Reader(["pl"])
 
         subtitles = [
-            " ".join(reader.readtext(str(input_path / file), detail=0)) for file in sorted(os.listdir(input_path))
+            " ".join(reader.readtext(str(input_path / file), detail=0))
+            for file in sorted(os.listdir(input_path))
         ]
 
         subtitles = filter(lambda subtitle: subtitle, subtitles)

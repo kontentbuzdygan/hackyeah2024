@@ -7,7 +7,7 @@ from moviepy.editor import VideoFileClip
 
 from media_analysis import Analyzer
 
-STEP_COUNT = 6
+STEP_COUNT = 7
 
 st.write(
     """
@@ -41,23 +41,18 @@ if video:
     clip.audio.write_audiofile(audio_file.name)
 
     progress += 1
-    progress_bar.progress(progress / STEP_COUNT, "Generowanie transktypcji…")
+    progress_bar.progress(progress / STEP_COUNT, "Generowanie transkrypcji…")
     analyzer = Analyzer(openai_api_key)
     transcription = analyzer.transcribe(audio_file.name)
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Wydzielanie klatek filmu…")
-
-    st.write("## Transkrypcja")
-
-    if transcription.segments:
-        for segment in transcription.segments:
-            st.write(timedelta(seconds=segment.start), segment.text)
-
     saved_frames = analyzer.get_frames(video_file.name)
+
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Przycinanie klatek filmu…")
     cropped_frames = analyzer.crop_frames(Path(saved_frames.name))
+
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Oddzielanie napisów…")
     extracted_subtitles = analyzer.extract_subtitles(Path(cropped_frames.name))
@@ -65,23 +60,28 @@ if video:
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Analizowanie jakości napisów…")
 
-    st.write("## Napisy w filmie")
-    if extracted_subtitles:
-        st.write("\n".join(f"- {subtitle}" for subtitle in extracted_subtitles))
-    else:
-        st.write("Nie wykryto napisów w filmie.")
-
     subtitle_rating = analyzer.rate_subtitles(transcription.text, extracted_subtitles)
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Analizowanie jakości wypodziedzi…")
-
-    st.write("### Ocena jakości napisów w filmie")
-    st.write(subtitle_rating)
-
     analysis_results = analyzer.analyze_transcription(transcription.text)
 
     progress_bar.empty()
+
+    st.write("## Transkrypcja")
+
+    if transcription.segments:
+        for segment in transcription.segments:
+            st.write(timedelta(seconds=segment.start), segment.text)
+
+    st.write("## Napisy w filmie")
+    if extracted_subtitles:
+        st.write("\n".join(f"- {subtitle}" for subtitle in extracted_subtitles))
+    else:
+        st.write("Nie znaleziono napisów w filmie.")
+
+    st.write("### Ocena jakości napisów w filmie")
+    st.write(subtitle_rating)
 
     st.write("## Analiza")
     st.write("### 10 Pytań do filmu")
@@ -103,12 +103,20 @@ if video:
     if analysis_results.wyrazenia_kluczowe:
         st.write("\n".join(f"- {word}" for word in analysis_results.wyrazenia_kluczowe))
     else:
-        st.write("Nie wykryto kluczowych wyrażeń.")
+        st.write("Nie znaleziono kluczowych wyrażeń.")
 
     st.write("### Aspekty językowe")
 
-    st.write(f"Tag: {analysis_results.aspekty_jezykowe.tag}")
-    st.write(f"Opis: {analysis_results.aspekty_jezykowe.ocena}")
+    if analysis_results.aspekty_jezykowe.tagi:
+        tags = ", ".join(
+            f"{tag.tag} („{tag.przyklad}”)"
+            for tag in analysis_results.aspekty_jezykowe.tagi
+        )
+    else:
+        tags = "Brak."
+
+    st.write(f"Problemy: {tags}")
+    st.write(analysis_results.aspekty_jezykowe.ocena)
 
     st.write("### Sentyment wypowiedzi")
     if analysis_results.sentyment_wypowiedzi:
@@ -118,7 +126,7 @@ if video:
         for sentiment in analysis_results.sentyment_wypowiedzi:
             st.write(f"- „{sentiment.fragment}”: sentyment {sentiment.sentyment}")
     else:
-        st.write("Nie wykryto zmian sentymentu w wypowiedzi.")
+        st.write("Nie znaleziono zmian sentymentu w wypowiedzi.")
 
     st.write("### Podsumowanie wypowiedzi")
     st.write(analysis_results.podsumowanie)
@@ -132,10 +140,7 @@ if video:
             )
         )
     else:
-        st.write("Nie wykryto niezrozumiałych wyrazów.")
-
-    st.write("### Poprawiona wypowiedź")
-    st.write(analysis_results.poprawiona_wypowiedz)
+        st.write("Nie znaleziono niezrozumiałych wyrazów.")
 
     st.write("### Sugestie doboru słów")
     if analysis_results.sugestie_doboru_slow:
@@ -148,5 +153,8 @@ if video:
     else:
         st.write("Brak sugestii doboru słów.")
 
+    st.write("### Poprawiona wypowiedź")
+    st.write(f"_{analysis_results.poprawiona_wypowiedz}_")
+
     st.write("### Angielskie tłumaczenie")
-    st.write(analysis_results.angielskie_tlumaczenie)
+    st.write(f"_{analysis_results.angielskie_tlumaczenie}_")
