@@ -6,6 +6,8 @@ from moviepy.editor import VideoFileClip
 
 from media_analysis import Analyzer
 
+from pathlib import Path
+
 STEP_COUNT = 6
 
 st.write(
@@ -52,9 +54,9 @@ if video:
 
     saved_frames = analyzer.get_frames(video_file.name)
     progress_bar.progress(3 / STEP_COUNT, "Przycinanie klatek filmu…")
-    cropped_frames = analyzer.crop_frames(saved_frames.name)
+    cropped_frames = analyzer.crop_frames(Path(saved_frames.name))
     progress_bar.progress(4 / STEP_COUNT, "Oddzielanie napisów…")
-    extracted_subtitles = analyzer.extract_subtitles(cropped_frames.name)
+    extracted_subtitles = analyzer.extract_subtitles(Path(cropped_frames.name))
 
     progress_bar.progress(5 / STEP_COUNT, "Analizowanie wypodziedzi…")
 

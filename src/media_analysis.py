@@ -110,21 +110,21 @@ class Analyzer:
 
         return temp_frames
 
-    def crop_frames(self, input_path: str) -> TemporaryDirectory:
+    def crop_frames(self, input_path: Path) -> TemporaryDirectory:
         temp_dir = TemporaryDirectory()
 
         for file in os.listdir(input_path):
-            img = cv2.imread(str(Path(input_path) / file))
+            img = cv2.imread(str(input_path / file))
             crop_img = img[918:1050, 460:1475]
             cv2.imwrite(str(Path(temp_dir.name) / file), crop_img)
 
         return temp_dir
 
-    def extract_subtitles(self, input_path: str) -> list[str]:
+    def extract_subtitles(self, input_path: Path) -> list[str]:
         reader = easyocr.Reader(["pl"])
 
         subtitles = [
-            " ".join(reader.readtext(file, detail=0)) for file in os.listdir(input_path)
+            " ".join(reader.readtext(str(input_path / file), detail=0)) for file in os.listdir(input_path)
         ]
 
         return list(dict.fromkeys(subtitles).keys())
