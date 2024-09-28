@@ -106,7 +106,7 @@ class Analyzer:
             if not success:
                 break
 
-            cv2.imwrite(str(Path(temp_frames.name) / f"frame_{i}.png"), image)
+            cv2.imwrite(str(Path(temp_frames.name) / f"frame_{i:0>8}.png"), image)
 
         return temp_frames
 
@@ -124,7 +124,7 @@ class Analyzer:
         reader = easyocr.Reader(["pl"])
 
         subtitles = [
-            " ".join(reader.readtext(str(input_path / file), detail=0)) for file in os.listdir(input_path)
+            " ".join(reader.readtext(str(input_path / file), detail=0)) for file in sorted(os.listdir(input_path))
         ]
 
         return list(dict.fromkeys(subtitles).keys())
