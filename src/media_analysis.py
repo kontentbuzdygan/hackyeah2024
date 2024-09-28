@@ -41,12 +41,11 @@ class AnaysisResults(BaseModel):
 
 
 class Analyzer:
-    def __init__(self, openai_api_key):
+    def __init__(self, openai_api_key: str):
         self.client = Client(api_key=openai_api_key)
 
-    # TODO: Allow passing the file directly
-    def transcribe(self, filename: str) -> TranscriptionVerbose:
-        with open(filename, "rb") as f:
+    def transcribe(self, file_path: str) -> TranscriptionVerbose:
+        with open(file_path, "rb") as f:
             return self.client.audio.transcriptions.create(
                 file=f,
                 model="whisper-1",
@@ -71,4 +70,9 @@ class Analyzer:
             response_format=AnaysisResults,
         )
 
-        return result.choices[0].message.parsed
+        message = result.choices[0].message
+
+        if message.refusal is not None:
+            raise Exception(message.refusal)
+
+        return message.parsed  # type: ignore

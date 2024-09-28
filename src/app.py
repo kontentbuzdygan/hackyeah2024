@@ -1,8 +1,10 @@
+from datetime import timedelta
+from tempfile import NamedTemporaryFile
+
 import streamlit as st
 from moviepy.editor import VideoFileClip
-from tempfile import NamedTemporaryFile
+
 from media_analysis import Analyzer
-from datetime import timedelta
 
 st.write(
     """
@@ -20,20 +22,22 @@ openai_api_key = st.text_input(
 video = st.file_uploader("Upload the video you want to analyze")
 
 if video:
-    video_tmp = NamedTemporaryFile()
-    video_tmp.write(video.getbuffer())
+    st.video(video)
 
-    st.video(video_tmp.name)
+    video_file = NamedTemporaryFile(delete_on_close=False)
+    video_file.write(video.getbuffer())
+    video_file.close()
 
-    if st.button("Analyze", type="primary"):
-        clip = VideoFileClip(video_tmp.name)
-        audio_tmp = NamedTemporaryFile(suffix=".mp3")
-        clip.audio.write_audiofile(audio_tmp.name)
+    if st.button(label="Analyze", type="primary"):
+        clip = VideoFileClip(video_file.name)
+        audio_file = NamedTemporaryFile(suffix=".mp3", delete_on_close=False)
+        audio_file.close()
+        clip.audio.write_audiofile(audio_file.name)
 
-        # st.audio(audio_tmp.name)
+        st.audio(audio_file.name)
 
         analyzer = Analyzer(openai_api_key)
-        transcription = analyzer.transcribe(audio_tmp.name)
+        transcription = analyzer.transcribe(audio_file.name)
 
         st.write("## Transcription")
 
