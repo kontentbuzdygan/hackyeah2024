@@ -127,4 +127,5 @@ class Analyzer:
             " ".join(reader.readtext(str(input_path / file), detail=0)) for file in sorted(os.listdir(input_path))
         ]
 
+        subtitles = filter(lambda subtitle: subtitle, subtitles)
         return list(dict.fromkeys(subtitles).keys())
