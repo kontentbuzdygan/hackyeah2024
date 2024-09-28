@@ -22,23 +22,32 @@ class SentymentWypowiedzi(BaseModel):
     )
 
 
+class NiezrozumialyWyraz(BaseModel):
+    wyraz: str = Field(description="Wyraz błędny lub niezrozumiały.")
+    opis: str = Field(description="Dlaczego ten wyraz jest nieprawidłowy.")
+
+
 class AnaysisResults(BaseModel):
     pytania: list[str] = Field(description="Utwórz 10 pytań do wypowiedzi.")
     grupa_docelowa: str = Field(
         description="Dla jakiej grupy docelowej kierowana jest ta wypowiedź?"
     )
-    wyrazenia_kluczowe: list[str] = Field(description="Lista kluczowych zdań i fraz.")
-    aspekty_jezykowe: AspektyJezykowe
-    sentyment_wypowiedzi: list[SentymentWypowiedzi]
-    podsumowanie: str = Field(description="Krótkie podsumowanie wypowiedzi.")
-    niezrozumiale_wyrazy: list[str] = Field(
-        description="Lista wyrazów błędnych lub niezrozumiałych."
+    wyrazenia_kluczowe: list[str] = Field(
+        description="Lista kluczowych wyrazów i fraz."
     )
-    poprawiona_wypowiedz: str = Field(
-        description="Przepisana wypowiedź z poprawionymi aspektami językowymi oraz błędnymi wyrazami."
+    aspekty_jezykowe: AspektyJezykowe
+    sentyment_wypowiedzi: list[SentymentWypowiedzi] = Field(
+        description="Cała wypowiedź podzielona na fragmenty."
+    )
+    podsumowanie: str = Field(description="Krótkie podsumowanie wypowiedzi.")
+    niezrozumiale_wyrazy: list[NiezrozumialyWyraz] = Field(
+        description="Lista wyrazów błędnych lub niezrozumiałych w wypowiedzi."
     )
     sugestie_doboru_slow: list[str] = Field(
         description="Proponowane zmiany doboru słów."
+    )
+    poprawiona_wypowiedz: str = Field(
+        description="Przepisana wypowiedź z poprawionymi aspektami językowymi oraz błędnymi wyrazami."
     )
     angielskie_tlumaczenie: str = Field(
         description="Tłumaczenie wypowiedzi na język angielski."
