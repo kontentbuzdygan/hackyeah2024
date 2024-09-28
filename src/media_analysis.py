@@ -70,16 +70,33 @@ class Analyzer:
                 timestamp_granularities=["segment"],
             )
 
+    def rate_subtitles(self, transcription: str, subtitles: list[str]) -> str:
+        result = self.client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Treść wypowiedzi w filmie:\n{transcription}\n\nTreść napisów filmu:\n{"\n".join(subtitles)}",
+                },
+                {
+                    "role": "system",
+                    "content": "Czy napisy są zgodne z treścią wypowiedzi? Czy zawierają jakieś błędy lub pomyłki?",
+                },
+            ],
+            model="gpt-4o-2024-08-06",
+        )
+
+        return result.choices[0].message.content  # type: ignore
+
     def analyze_transcription(self, transcription: str) -> AnaysisResults:
         result = self.client.beta.chat.completions.parse(
             messages=[
                 {
-                    "content": transcription,
                     "role": "user",
+                    "content": transcription,
                 },
                 {
-                    "content": "Na podstawie powyższej transkrypcji wypowiedzi wypełnij model JSON.",
                     "role": "system",
+                    "content": "Na podstawie powyższej transkrypcji wypowiedzi wypełnij model JSON.",
                 },
             ],
             model="gpt-4o-2024-08-06",

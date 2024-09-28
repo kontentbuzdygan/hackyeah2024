@@ -28,7 +28,8 @@ video = st.file_uploader(
 if video:
     st.video(video)
 
-    progress_bar = st.progress(0 / STEP_COUNT, text="Oddzielanie dźwięku…")
+    progress = 0
+    progress_bar = st.progress(progress / STEP_COUNT, text="Oddzielanie dźwięku…")
 
     video_file = NamedTemporaryFile(delete_on_close=False)
     video_file.write(video.getvalue())
@@ -38,11 +39,13 @@ if video:
     audio_file.close()
     clip.audio.write_audiofile(audio_file.name)
 
-    progress_bar.progress(1 / STEP_COUNT, "Generowanie transktypcji…")
+    progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Generowanie transktypcji…")
     analyzer = Analyzer(openai_api_key)
     transcription = analyzer.transcribe(audio_file.name)
 
-    progress_bar.progress(2 / STEP_COUNT, "Wydzielanie klatek filmu…")
+    progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Wydzielanie klatek filmu…")
 
     st.write("## Transkrypcja")
 
@@ -51,15 +54,29 @@ if video:
             st.write(timedelta(seconds=segment.start), segment.text)
 
     saved_frames = analyzer.get_frames(video_file.name)
-    progress_bar.progress(3 / STEP_COUNT, "Przycinanie klatek filmu…")
+    progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Przycinanie klatek filmu…")
     cropped_frames = analyzer.crop_frames(saved_frames.name)
-    progress_bar.progress(4 / STEP_COUNT, "Oddzielanie napisów…")
+    progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Oddzielanie napisów…")
     extracted_subtitles = analyzer.extract_subtitles(cropped_frames.name)
 
-    progress_bar.progress(5 / STEP_COUNT, "Analizowanie wypodziedzi…")
+    progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Analizowanie jakości napisów…")
 
     st.write("## Napisy w filmie")
-    st.code(extracted_subtitles, wrap_lines=True)
+    if extracted_subtitles:
+        st.write("\n".join(f"- {subtitle}" for subtitle in extracted_subtitles))
+    else:
+        st.write("Nie wykryto napisów w filmie.")
+
+    subtitle_rating = analyzer.rate_subtitles(transcription.text, extracted_subtitles)
+
+    progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Analizowanie jakości wypodziedzi…")
+
+    st.write("### Ocena jakości napisów w filmie")
+    st.write(subtitle_rating)
 
     analysis_results = analyzer.analyze_transcription(transcription.text)
 
