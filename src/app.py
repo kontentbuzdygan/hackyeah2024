@@ -25,7 +25,7 @@ if video:
 
     st.video(video_tmp.name)
 
-    if st.button(label="Analyze", type="primary"):
+    if st.button("Analyze", type="primary"):
         clip = VideoFileClip(video_tmp.name)
         audio_tmp = NamedTemporaryFile(suffix=".mp3")
         clip.audio.write_audiofile(audio_tmp.name)
