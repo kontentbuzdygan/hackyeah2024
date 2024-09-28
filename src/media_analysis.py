@@ -6,6 +6,7 @@ import cv2
 import os
 from PIL import Image
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from pathlib import Path
 
 
 class AspektyJezykowe(BaseModel):
@@ -95,28 +96,27 @@ class Analyzer:
         temp_frames = TemporaryDirectory()
         count = 0
         vidcap = cv2.VideoCapture(pathIn)
-        success,image = vidcap.read()
+        success, image = vidcap.read()
         success = True
 
         while True:
             vidcap.set(cv2.CAP_PROP_POS_MSEC,(count*1000))
-            success,image = vidcap.read()
+            success, image = vidcap.read()
             print ('Read a new frame: ', success)
-            if success is False:
+            if not success:
                 break
-            cv2.imwrite(temp_frames.name + "\\frame%d.jpg" % count, image)
+            cv2.imwrite(str(Path(temp_frames.name) / f"frame{count}.png"), image)
             count = count + 1
-
         return temp_frames
 
     def crop_frames(self, pathIn):
         temp_dir = TemporaryDirectory()
 
         for file in os.listdir(pathIn.name):
-            img = cv2.imread(pathIn.name + "\\" + file)
+            img = cv2.imread(str(Path(pathIn.name) / file))
             crop_img = img[918:1050, 460:1475]
-            cv2.imwrite(temp_dir.name + "\\" + file, crop_img) 
-        
+            cv2.imwrite(str(Path(temp_dir.name) / file), crop_img)
+
         return temp_dir
 
     def extract_subtitles(self, pathIn):
@@ -124,7 +124,8 @@ class Analyzer:
 
         for i in range(len(os.listdir(pathIn.name))):
             reader = easyocr.Reader(['pl'])
-            result = reader.readtext(pathIn.name + "\\frame%d.jpg" % i, detail=0)
+            print(str(Path(pathIn.name) / f"frame{i}.png"))
+            result = reader.readtext(str(Path(pathIn.name) / f"frame{i}.png"), detail=0)
             subtitles.append(" ".join(result))
 
         return dict.fromkeys(subtitles).keys()
