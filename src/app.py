@@ -1,35 +1,43 @@
-import dotenv
+from datetime import timedelta
+from tempfile import NamedTemporaryFile
+
 import streamlit as st
 from moviepy.editor import VideoFileClip
-from tempfile import NamedTemporaryFile
+
 from media_analysis import Analyzer
-from datetime import timedelta
 
-dotenv.load_dotenv()
+st.write(
+    """
+    # :red[wideo]buzdygan
+    by **kontentbuzdygan**
+    """
+)
 
-st.write("# BreakWordTraps")
-video = st.file_uploader(label="Drop the video you want to classify!")
+openai_api_key = st.text_input(
+    "OpenAI API key",
+    help="Please set up an account and provide your own API key",
+    type="password",
+)
+
+video = st.file_uploader("Upload the video you want to analyze")
 
 if video:
-    video_tmp = NamedTemporaryFile(delete=False)
-    video_tmp.write(video.getbuffer())
-    video_name = video_tmp.name
+    st.video(video)
 
-    st.video(video_tmp.name)
+    video_file = NamedTemporaryFile(delete_on_close=False)
+    video_file.write(video.getbuffer())
+    video_file.close()
 
-    if st.button(label="Classify!", type="primary"):
-        clip = VideoFileClip(video_tmp.name)
-        audio_tmp = NamedTemporaryFile(suffix=".mp3", delete=False)
-        clip.audio.write_audiofile(audio_tmp.name)
+    if st.button(label="Analyze", type="primary"):
+        clip = VideoFileClip(video_file.name)
+        audio_file = NamedTemporaryFile(suffix=".mp3", delete_on_close=False)
+        audio_file.close()
+        clip.audio.write_audiofile(audio_file.name)
 
-        # st.audio(audio_tmp.name)
+        st.audio(audio_file.name)
 
-        analyzer = Analyzer()
-        audio_name = audio_tmp.name
-        video_tmp.close()
-        audio_tmp.close()
-
-        transcription = analyzer.transcribe(audio_name)
+        analyzer = Analyzer(openai_api_key)
+        transcription = analyzer.transcribe(audio_file.name)
 
         st.write("## Transcription")
 
@@ -42,7 +50,7 @@ if video:
         st.write("## Analysis")
         st.code(analysis_results, wrap_lines=True)
 
-        saved_frames = analyzer.get_frames(video_name)
+        saved_frames = analyzer.get_frames(video_file.name)
         cropped_frames = analyzer.crop_frames(saved_frames)
         extracted_subtitles = analyzer.extract_subtitles(cropped_frames)
 
