@@ -3,3 +3,4 @@ openai~=1.50.0
 python_dotenv~=1.0.0
 deepface~=0.0.93
 tf_keras~=2.17.0
+moviepy~=1.0.3
