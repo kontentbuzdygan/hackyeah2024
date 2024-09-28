@@ -49,3 +49,10 @@ if video:
 
         st.write("## Analysis")
         st.code(analysis_results, wrap_lines=True)
+
+        saved_frames = analyzer.get_frames(video_file.name)
+        cropped_frames = analyzer.crop_frames(saved_frames)
+        extracted_subtitles = analyzer.extract_subtitles(cropped_frames)
+
+        st.write("## Subtitles")
+        st.code(extracted_subtitles, wrap_lines=True)
