@@ -12,9 +12,9 @@ if video:
 
     st.video(video_tmp.name)
 
-if st.button(label="Classify!", type="primary"):
-    clip = VideoFileClip(video_tmp.name)
-    audio_tmp = NamedTemporaryFile(suffix=".mp3")
-    clip.audio.write_audiofile(audio_tmp.name)
+    if st.button(label="Classify!", type="primary"):
+        clip = VideoFileClip(video_tmp.name)
+        audio_tmp = NamedTemporaryFile(suffix=".mp3")
+        clip.audio.write_audiofile(audio_tmp.name)
 
-    st.audio(audio_tmp.name)
+        st.audio(audio_tmp.name)
