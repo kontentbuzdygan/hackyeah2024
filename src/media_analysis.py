@@ -1,11 +1,13 @@
+import itertools
+import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import cv2
+import easyocr
 from openai import Client
 from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
-import easyocr
-import cv2
-import os
-from PIL import Image
-from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 
 class AspektyJezykowe(BaseModel):
@@ -91,40 +93,38 @@ class Analyzer:
 
         return message.parsed  # type: ignore
 
-    def get_frames(self, pathIn):
+    def get_frames(self, input_path: str):
         temp_frames = TemporaryDirectory()
-        count = 0
-        vidcap = cv2.VideoCapture(pathIn)
-        success,image = vidcap.read()
+        vidcap = cv2.VideoCapture(input_path)
+        success, image = vidcap.read()
         success = True
 
-        while True:
-            vidcap.set(cv2.CAP_PROP_POS_MSEC,(count*1000))
-            success,image = vidcap.read()
-            print ('Read a new frame: ', success)
+        for i in itertools.count():
+            vidcap.set(cv2.CAP_PROP_POS_MSEC, (i * 3_000))
+            success, image = vidcap.read()
+
             if success is False:
                 break
-            cv2.imwrite(temp_frames.name + "\\frame%d.jpg" % count, image)
-            count = count + 1
+
+            cv2.imwrite(str(Path(temp_frames.name) / f"frame_{i}.png"), image)
 
         return temp_frames
 
-    def crop_frames(self, pathIn):
+    def crop_frames(self, input_path: str) -> TemporaryDirectory:
         temp_dir = TemporaryDirectory()
 
-        for file in os.listdir(pathIn.name):
-            img = cv2.imread(pathIn.name + "\\" + file)
+        for file in os.listdir(input_path):
+            img = cv2.imread(input_path + "\\" + file)
             crop_img = img[918:1050, 460:1475]
-            cv2.imwrite(temp_dir.name + "\\" + file, crop_img) 
-        
+            cv2.imwrite(temp_dir.name + "\\" + file, crop_img)
+
         return temp_dir
 
-    def extract_subtitles(self, pathIn):
-        subtitles = []
+    def extract_subtitles(self, input_path: str) -> list[str]:
+        reader = easyocr.Reader(["pl"])
 
-        for i in range(len(os.listdir(pathIn.name))):
-            reader = easyocr.Reader(['pl'])
-            result = reader.readtext(pathIn.name + "\\frame%d.jpg" % i, detail=0)
-            subtitles.append(" ".join(result))
+        subtitles = [
+            " ".join(reader.readtext(file, detail=0)) for file in os.listdir(input_path)
+        ]
 
-        return dict.fromkeys(subtitles).keys()
+        return list(dict.fromkeys(subtitles).keys())
