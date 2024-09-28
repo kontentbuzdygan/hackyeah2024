@@ -41,8 +41,8 @@ class AnaysisResults(BaseModel):
 
 
 class Analyzer:
-    def __init__(self):
-        self.client = Client()
+    def __init__(self, openai_api_key):
+        self.client = Client(api_key=openai_api_key)
 
     # TODO: Allow passing the file directly
     def transcribe(self, filename: str) -> TranscriptionVerbose:
