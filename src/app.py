@@ -7,8 +7,13 @@ from datetime import timedelta
 
 dotenv.load_dotenv()
 
-st.write("# BreakWordTraps")
-video = st.file_uploader(label="Drop the video you want to classify!")
+st.write(
+    """
+    # :red[wideo]buzdygan
+    by **kontentbuzdygan**
+    """
+)
+video = st.file_uploader("Upload the video you want to analyze")
 
 if video:
     video_tmp = NamedTemporaryFile()
@@ -16,7 +21,7 @@ if video:
 
     st.video(video_tmp.name)
 
-    if st.button(label="Classify!", type="primary"):
+    if st.button(label="Analyze", type="primary"):
         clip = VideoFileClip(video_tmp.name)
         audio_tmp = NamedTemporaryFile(suffix=".mp3")
         clip.audio.write_audiofile(audio_tmp.name)
