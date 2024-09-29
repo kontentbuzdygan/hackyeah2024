@@ -4,24 +4,18 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import annotated_text
+import pandas as pd
 import streamlit as st
+import textstat
 from moviepy.editor import VideoFileClip
 from streamlit_extras.tags import tagger_component
 
+import index_mappings
 import media_analysis
 from media_analysis import Analyzer
 
-from pathlib import Path
-
-import annotated_text
-from streamlit_extras.tags import tagger_component
-
-import textstat
-import pandas as pd
-import index_mappings
-
 STEP_COUNT = 9
-textstat.set_lang("pl")
+textstat.set_lang("pl")  # type: ignore
 
 st.write(
     """
@@ -38,7 +32,7 @@ openai_api_key = st.text_input(
 )
 
 videos = st.file_uploader(
-    "Prześlij film, który chcesz przeanalizować",
+    "Prześlij filmy, które chcesz przeanalizować",
     accept_multiple_files=True,
     type=["mp4", "webm", "mkv"],
     disabled=not openai_api_key,
@@ -83,7 +77,9 @@ if videos:
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Wydzielanie klatek filmu…")
-    saved_frames = [analyzer.get_frames(video_file.name) for video_file in video_files]
+    saved_frames = [
+        media_analysis.get_frames(video_file.name) for video_file in video_files
+    ]
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Analizowanie emocji…")
@@ -95,13 +91,14 @@ if videos:
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Przycinanie klatek filmu…")
     cropped_frames = [
-        analyzer.crop_frames(Path(saved_frames.name)) for saved_frames in saved_frames
+        media_analysis.crop_frames(Path(saved_frames.name))
+        for saved_frames in saved_frames
     ]
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Oddzielanie napisów…")
     extracted_subtitles = [
-        analyzer.extract_subtitles(Path(cropped_frames.name))
+        media_analysis.extract_subtitles(Path(cropped_frames.name))
         for cropped_frames in cropped_frames
     ]
 
@@ -126,7 +123,8 @@ if videos:
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Wykrywanie problemów wizualnych…")
     visual_tags = [
-        analyzer.analyze_frame(Path(saved_frames.name)) for saved_frames in saved_frames
+        analyzer.analyze_frames(Path(saved_frames.name))
+        for saved_frames in saved_frames
     ]
 
     progress_bar.empty()
@@ -183,6 +181,7 @@ if videos:
             st.write("Brak pytań do wypowiedzi.")
 
     st.write("### Emocje osoby mówiącej")
+
     for i, emotions in enumerate(emotions):
         if i > 0:
             st.divider()
@@ -250,23 +249,37 @@ if videos:
         else:
             st.write("Nie znaleziono problemów wizualnych.")
 
-
     st.write("### Indeksy czytelności")
-    fog = textstat.gunning_fog(transcription.text)
-    flesch = textstat.flesch_reading_ease(transcription.text)
-    smog = textstat.smog_index(transcription.text)
-    index_table = pd.DataFrame([
-        {
-            "Indeks": "FOG", "Ocena": fog, "Poziom szkolnictwa": index_mappings.fog_mapping(fog)
-        },
-        {
-            "Indeks": "Flesch", "Ocena": flesch, "Poziom szkolnictwa": index_mappings.flesch_mapping(flesch)
-        },
-        {
-            "Indeks": "SMOG", "Ocena": smog, "Poziom szkolnictwa": index_mappings.smog_mapping(smog)
-        },
-    ])
-    st.dataframe(index_table, hide_index=True, use_container_width=True)
+
+    for i, transcription in enumerate(transcriptions):
+        if i > 0:
+            st.divider()
+
+        fog = textstat.gunning_fog(transcription.text)  # type: ignore
+        flesch = textstat.flesch_reading_ease(transcription.text)  # type: ignore
+        smog = textstat.smog_index(transcription.text)  # type: ignore
+
+        index_table = pd.DataFrame(
+            [
+                {
+                    "Indeks": "FOG",
+                    "Ocena": fog,
+                    "Poziom szkolnictwa": index_mappings.fog_mapping(fog),
+                },
+                {
+                    "Indeks": "Flesch",
+                    "Ocena": flesch,
+                    "Poziom szkolnictwa": index_mappings.flesch_mapping(flesch),
+                },
+                {
+                    "Indeks": "SMOG",
+                    "Ocena": smog,
+                    "Poziom szkolnictwa": index_mappings.smog_mapping(smog),
+                },
+            ]
+        )
+
+        st.dataframe(index_table, hide_index=True, use_container_width=True)
 
     st.write("### Sentyment wypowiedzi")
 

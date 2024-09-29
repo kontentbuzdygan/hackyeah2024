@@ -1,3 +1,4 @@
+import base64
 import itertools
 import os
 from pathlib import Path
@@ -5,13 +6,12 @@ from tempfile import TemporaryDirectory
 from typing import Literal
 
 import cv2
-from deepface import DeepFace
 import easyocr
+from deepface import DeepFace
 from fuzzywuzzy import fuzz
 from openai import Client
 from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
-import base64
 
 
 class Tag(BaseModel):
@@ -90,19 +90,12 @@ class AnaysisResults(BaseModel):
         description="Tłumaczenie wypowiedzi na język angielski."
     )
 
+
 class VisualTags(BaseModel):
-    osoby_w_drugim_planie: bool = Field(
-        description="Czy film zawiera drugoplanowca?"
-    )
-    odwracanie_sie: bool = Field(
-        description="Czy osoba prowadząca odwraca się?"
-    )
-    gestykulacja: bool = Field(
-        description="Czy osoba prowadząca gestykuluje?"
-    )
-    mimika: bool = Field(
-        description="Czy osoba prowadząca używa wyraźnej mimiki?"
-    )
+    osoby_w_drugim_planie: bool = Field(description="Czy film zawiera drugoplanowca?")
+    odwracanie_sie: bool = Field(description="Czy osoba prowadząca odwraca się?")
+    gestykulacja: bool = Field(description="Czy osoba prowadząca gestykuluje?")
+    mimika: bool = Field(description="Czy osoba prowadząca używa wyraźnej mimiki?")
 
 
 class Analyzer:
@@ -162,32 +155,34 @@ class Analyzer:
 
         return message.parsed  # type: ignore
 
-    def analyze_frame(self, frames: Path) -> VisualTags:
+    def analyze_frames(self, frames: Path) -> VisualTags:
         content = [
+            {
+                "type": "text",
+                "text": "Na podstawie klatek z filmu uzupełnij model JSON.",
+            },
+        ]
+
+        content.extend(
+            (
                 {
-            {"type": "text", "text": "Na podstawie klatek z filmu uzupełnij model JSON."}, 
-         ] 
-  
-         content.extend( 
-             ( 
-                  { 
-                     "type": "image_url", 
-                     "image_url": { 
-                         "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}", 
-                         "detail": "low", 
-                     }, 
-                 } 
-                 for base64_file in sorted(frames.iterdir())  # type: ignore 
-             ) 
-         )
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}",
+                        "detail": "low",
+                    },
+                }
+                for base64_file in sorted(frames.iterdir())  # type: ignore
+            )
+        )
 
         result = self.client.beta.chat.completions.parse(
-            messages=[ 
-                 { 
-                     "role": "system", 
-                     "content": content, 
-                 },  # type: ignore 
-             ],
+            messages=[
+                {
+                    "role": "user",
+                    "content": content,
+                },  # type: ignore
+            ],
             model="gpt-4o-2024-08-06",
             response_format=VisualTags,
         )
@@ -199,58 +194,62 @@ class Analyzer:
 
         return message.parsed  # type: ignore
 
-    def get_frames(self, input_path: str):
-        temp_frames = TemporaryDirectory()
-        vidcap = cv2.VideoCapture(input_path)
+
+def get_frames(input_path: str) -> TemporaryDirectory:
+    temp_frames = TemporaryDirectory()
+    vidcap = cv2.VideoCapture(input_path)
+    success, image = vidcap.read()
+    success = True
+
+    for i in itertools.count():
+        vidcap.set(cv2.CAP_PROP_POS_MSEC, (i * 1_000))
         success, image = vidcap.read()
-        success = True
 
-        for i in itertools.count():
-            vidcap.set(cv2.CAP_PROP_POS_MSEC, (i * 1_000))
-            success, image = vidcap.read()
+        if not success:
+            break
 
-            if not success:
-                break
+        cv2.imwrite(str(Path(temp_frames.name) / f"frame_{i:0>8}.png"), image)
 
-            cv2.imwrite(str(Path(temp_frames.name) / f"frame_{i:0>8}.png"), image)
+    return temp_frames
 
-        return temp_frames
 
-    def crop_frames(self, input_path: Path) -> TemporaryDirectory:
-        temp_dir = TemporaryDirectory()
+def crop_frames(input_path: Path) -> TemporaryDirectory:
+    temp_dir = TemporaryDirectory()
 
-        for file in os.listdir(input_path):
-            img = cv2.imread(str(input_path / file))
-            crop_img = img[918:1050, 460:1475]
-            cv2.imwrite(str(Path(temp_dir.name) / file), crop_img)
+    for file in os.listdir(input_path):
+        img = cv2.imread(str(input_path / file))
+        crop_img = img[918:1050, 460:1475]
+        cv2.imwrite(str(Path(temp_dir.name) / file), crop_img)
 
-        return temp_dir
+    return temp_dir
 
-    def extract_subtitles(self, input_path: Path) -> list[str]:
-        reader = easyocr.Reader(["pl"])
 
-        subtitles = [
-            " ".join(reader.readtext(str(input_path / file), detail=0))
-            for file in sorted(os.listdir(input_path))
-        ]
+def extract_subtitles(input_path: Path) -> list[str]:
+    reader = easyocr.Reader(["pl"])
 
-        subtitles = filter(lambda subtitle: subtitle.strip(), subtitles)
-        previous_subtitle = None
+    subtitles = [
+        " ".join(reader.readtext(str(input_path / file), detail=0))
+        for file in sorted(os.listdir(input_path))
+    ]
 
-        def is_duplicate(new_subtitle: str) -> bool:
-            nonlocal previous_subtitle
+    subtitles = filter(lambda subtitle: subtitle.strip(), subtitles)
+    previous_subtitle = None
 
-            if previous_subtitle is None:
-                previous_subtitle = new_subtitle
-                return False
+    def is_duplicate(new_subtitle: str) -> bool:
+        nonlocal previous_subtitle
 
-            result = fuzz.ratio(previous_subtitle, new_subtitle)
+        if previous_subtitle is None:
             previous_subtitle = new_subtitle
-            return result > 90
+            return False
 
-        return list(filter(lambda subtitle: not is_duplicate(subtitle), subtitles))
+        result = fuzz.ratio(previous_subtitle, new_subtitle)
+        previous_subtitle = new_subtitle
+        return result > 90
 
-def emotion_analysis(input_path: Path):
+    return list(filter(lambda subtitle: not is_duplicate(subtitle), subtitles))
+
+
+def emotion_analysis(input_path: Path) -> list[dict[str, float]]:
     emotions = []
 
     for file in sorted(input_path.iterdir()):
