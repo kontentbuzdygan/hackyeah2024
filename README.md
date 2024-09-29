@@ -21,7 +21,10 @@ Wygodna aplikacja webowa pozwalająca na dogłębną analizę nagrania wideo wyp
 
 ## Wypróbuj online
 Wypróbuj naszą aplikację bez zbędnych instalacji!
-[wideobuzdygan](https://wideobuzdygan.streamlit.app/)
+
+W razie potrzeby prosimy o kontakt z jednym z członków drużyny, aby otrzymać dedykowany klucz API OpenAI wymagany do poprawnego działania aplikacji.
+
+[wideobuzdygan.app](https://wideobuzdygan.streamlit.app/)
 
 ## Instalacja
 
