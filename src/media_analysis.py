@@ -1,4 +1,3 @@
-import base64
 import itertools
 import os
 from pathlib import Path
@@ -6,12 +5,13 @@ from tempfile import TemporaryDirectory
 from typing import Literal
 
 import cv2
-import easyocr
 from deepface import DeepFace
+import easyocr
 from fuzzywuzzy import fuzz
 from openai import Client
 from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
+import base64
 
 
 class Tag(BaseModel):
@@ -90,12 +90,19 @@ class AnaysisResults(BaseModel):
         description="Tłumaczenie wypowiedzi na język angielski."
     )
 
-
 class VisualTags(BaseModel):
-    osoby_w_drugim_planie: bool = Field(description="Czy film zawiera drugoplanowca?")
-    odwracanie_sie: bool = Field(description="Czy osoba prowadząca odwraca się?")
-    gestykulacja: bool = Field(description="Czy osoba prowadząca gestykuluje?")
-    mimika: bool = Field(description="Czy osoba prowadząca używa wyraźnej mimiki?")
+    osoby_w_drugim_planie: bool = Field(
+        description="Czy film zawiera drugoplanowca?"
+    )
+    odwracanie_sie: bool = Field(
+        description="Czy osoba prowadząca odwraca się?"
+    )
+    gestykulacja: bool = Field(
+        description="Czy osoba prowadząca gestykuluje?"
+    )
+    mimika: bool = Field(
+        description="Czy osoba prowadząca używa wyraźnej mimiki?"
+    )
 
 
 class Analyzer:
@@ -157,29 +164,30 @@ class Analyzer:
 
     def analyze_frame(self, frames: Path) -> VisualTags:
         content = [
-            {"type": "text", "text": "Ile osób jest na zdjęciu?"},
-        ]
-
-        content.extend(
-            (
                 {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}",
-                        "detail": "low",
-                    },
-                }
-                for base64_file in sorted(frames.iterdir())  # type: ignore
-            )
-        )
+            {"type": "text", "text": "Na podstawie klatek z filmu uzupełnij model JSON."}, 
+         ] 
+  
+         content.extend( 
+             ( 
+                  { 
+                     "type": "image_url", 
+                     "image_url": { 
+                         "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}", 
+                         "detail": "low", 
+                     }, 
+                 } 
+                 for base64_file in sorted(frames.iterdir())  # type: ignore 
+             ) 
+         )
 
         result = self.client.beta.chat.completions.parse(
-            messages=[
-                {
-                    "role": "system",
-                    "content": content,
-                },  # type: ignore
-            ],
+            messages=[ 
+                 { 
+                     "role": "system", 
+                     "content": content, 
+                 },  # type: ignore 
+             ],
             model="gpt-4o-2024-08-06",
             response_format=VisualTags,
         )
@@ -241,7 +249,6 @@ class Analyzer:
             return result > 90
 
         return list(filter(lambda subtitle: not is_duplicate(subtitle), subtitles))
-
 
 def emotion_analysis(input_path: Path):
     emotions = []

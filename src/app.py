@@ -11,7 +11,17 @@ from streamlit_extras.tags import tagger_component
 import media_analysis
 from media_analysis import Analyzer
 
+from pathlib import Path
+
+import annotated_text
+from streamlit_extras.tags import tagger_component
+
+import textstat
+import pandas as pd
+import index_mappings
+
 STEP_COUNT = 9
+textstat.set_lang("pl")
 
 st.write(
     """
@@ -173,8 +183,6 @@ if videos:
             st.write("Brak pytań do wypowiedzi.")
 
     st.write("### Emocje osoby mówiącej")
-    st.line_chart(emotions)
-
     for i, emotions in enumerate(emotions):
         if i > 0:
             st.divider()
@@ -242,6 +250,24 @@ if videos:
         else:
             st.write("Nie znaleziono problemów wizualnych.")
 
+
+    st.write("### Indeksy czytelności")
+    fog = textstat.gunning_fog(transcription.text)
+    flesch = textstat.flesch_reading_ease(transcription.text)
+    smog = textstat.smog_index(transcription.text)
+    index_table = pd.DataFrame([
+        {
+            "Indeks": "FOG", "Ocena": fog, "Poziom szkolnictwa": index_mappings.fog_mapping(fog)
+        },
+        {
+            "Indeks": "Flesch", "Ocena": flesch, "Poziom szkolnictwa": index_mappings.flesch_mapping(flesch)
+        },
+        {
+            "Indeks": "SMOG", "Ocena": smog, "Poziom szkolnictwa": index_mappings.smog_mapping(smog)
+        },
+    ])
+    st.dataframe(index_table, hide_index=True, use_container_width=True)
+
     st.write("### Sentyment wypowiedzi")
 
     for i, analysis_result in enumerate(analysis_results):
@@ -256,13 +282,12 @@ if videos:
                 ]
             )
 
-            for sentiment in analysis_result.sentyment_wypowiedzi:
-                annotated_text.annotated_text(
-                    [
-                        (f"„{sentiment.fragment}”", f"sentyment: {sentiment.sentyment}")
-                        for sentiment in analysis_result.sentyment_wypowiedzi
-                    ]
-                )
+            annotated_text.annotated_text(
+                [
+                    (f"„{sentiment.fragment}”", f"sentyment: {sentiment.sentyment}")
+                    for sentiment in analysis_result.sentyment_wypowiedzi
+                ]
+            )
         else:
             st.write("Nie znaleziono zmian sentymentu w wypowiedzi.")
 
