@@ -59,7 +59,6 @@ if video:
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Analizowanie emocji…")
     emotions = media_analysis.emotion_analysis(Path(saved_frames.name))
-    st.line_chart(emotions)
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Oddzielanie napisów…")
@@ -94,6 +93,7 @@ if video:
     st.write("## Analiza")
     st.write("### 10 Pytań do filmu")
 
+
     if analysis_results.wyrazenia_kluczowe:
         st.write(
             "\n".join(
@@ -104,6 +104,9 @@ if video:
     else:
         st.write("Brak pytań do wypowiedzi.")
 
+    st.write("### Emocje osoby mówiącej")
+    st.line_chart(emotions)
+    
     st.write("### Grupa docelowa filmu")
     st.write(analysis_results.grupa_docelowa)
 
