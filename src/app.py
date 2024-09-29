@@ -6,8 +6,11 @@ import streamlit as st
 from moviepy.editor import VideoFileClip
 
 from media_analysis import Analyzer
+import media_analysis
 
-STEP_COUNT = 7
+from pathlib import Path
+
+STEP_COUNT = 8
 
 st.write(
     """
@@ -52,6 +55,11 @@ if video:
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Przycinanie klatek filmu…")
     cropped_frames = analyzer.crop_frames(Path(saved_frames.name))
+
+    progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Analizowanie emocji…")
+    emotions = media_analysis.emotion_analysis(Path(saved_frames.name))
+    st.line_chart(emotions)
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Oddzielanie napisów…")
