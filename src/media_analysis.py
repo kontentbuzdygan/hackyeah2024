@@ -255,7 +255,7 @@ def emotion_analysis(input_path: Path):
 
     for file in sorted(input_path.iterdir()):
         try:
-            result = DeepFace.analyze(cv2.imread(file), actions = ['emotion'])[0]
+            result = DeepFace.analyze(cv2.imread(str(file)), actions=["emotion"])[0]
             if result["face_confidence"] >= 0.75:
                 emotions.append(result["emotion"])
         except ValueError:
