@@ -8,7 +8,10 @@ from media_analysis import Analyzer
 
 from pathlib import Path
 
-STEP_COUNT = 6
+import annotated_text
+from streamlit_extras.tags import tagger_component 
+
+STEP_COUNT = 9
 
 st.write(
     """
@@ -56,12 +59,12 @@ if video:
     progress_bar.progress(3 / STEP_COUNT, "Przycinanie klatek filmu…")
     cropped_frames = analyzer.crop_frames(Path(saved_frames.name))
     progress_bar.progress(4 / STEP_COUNT, "Oddzielanie napisów…")
-    extracted_subtitles = analyzer.extract_subtitles(Path(cropped_frames.name))
+    #extracted_subtitles = analyzer.extract_subtitles(Path(cropped_frames.name))
 
     progress_bar.progress(5 / STEP_COUNT, "Analizowanie wypodziedzi…")
 
     st.write("## Napisy w filmie")
-    st.code(extracted_subtitles, wrap_lines=True)
+    #st.code(extracted_subtitles, wrap_lines=True)
 
     analysis_results = analyzer.analyze_transcription(transcription.text)
 
@@ -99,8 +102,8 @@ if video:
         st.line_chart(
             [sentiment.sentyment for sentiment in analysis_results.sentyment_wypowiedzi]
         )
-        for sentiment in analysis_results.sentyment_wypowiedzi:
-            st.write(f"- „{sentiment.fragment}”: sentyment {sentiment.sentyment}")
+
+        annotated_text.annotated_text([(sentiment.fragment, f"sentyment: {sentiment.sentyment}") for sentiment in analysis_results.sentyment_wypowiedzi])
     else:
         st.write("Nie wykryto zmian sentymentu w wypowiedzi.")
 
@@ -134,3 +137,14 @@ if video:
 
     st.write("### Angielskie tłumaczenie")
     st.write(analysis_results.angielskie_tlumaczenie)
+
+    progress_bar.progress(8 / STEP_COUNT, "Wykrywanie problemów wizualnych…")
+
+    tags = analyzer.analyze_frame(Path(saved_frames.name))
+    st.write("## Tagi wizualne")
+    tag_list = [tag for tag, value in (("Osoby w drugim planie", tags.osoby_w_drugim_planie), ("Odwracanie się", tags.odwracanie_sie), ("Gestykulacja", tags.gestykulacja), ("Mimika", tags.mimika)) if value]
+    tagger_component(
+        "",
+        tag_list,
+        color_name=["blue", "red", "violet", "green"][:len(tag_list)],
+    )

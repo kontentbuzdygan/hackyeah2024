@@ -4,3 +4,5 @@ python_dotenv~=1.0.0
 easyocr~=1.7.2
 moviepy~=1.0.3
 opencv-python~=4.10.0.84
+st-annotated-text~=4.0.1
+streamlit-extras~=0.4.7
