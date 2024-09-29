@@ -1,9 +1,9 @@
 # wideobuzdygan
 od kontentbuzdygan
 
-> Życie jest jak droga
+> _Życie jest jak droga
 > idziemy z wieloma ludźmi
-> ale do końca dochodzimy tylko z nielicznymi...
+> ale do końca dochodzimy tylko z nielicznymi…_
 > ~ Miki
 
 Wygodna aplikacja webowa pozwalająca na dogłębną analizę nagrania wideo wypowiedzi, aby ocenić jego jakość. Umożliwia odczytanie transkryptu, podsumowuje znalezione błędy lub problemy i sugeruje sposoby poprawy.
