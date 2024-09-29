@@ -42,22 +42,6 @@ def fog_mapping(score: int):
     else:
         return "6. klasa podstawówki"
 
-"""
-5-6 yrs. old — Kindergarten
-6-7 yrs. old — First Grade
-7-8 yrs. old — Second Grade
-8-9 yrs. old — Third Grade
-9-10 yrs. old — Fourth Grade
-10-11 yrs. old — Fifth Grade
-11-12 yrs. old — Sixth Grade
-12-13 yrs. old — Seventh Grade
-13-14 yrs. old — Eighth Grade
-14-15 yrs. old — Ninth Grade
-15-16 yrs. old — Tenth Grade
-16-17 yrs. old — Eleventh grade
-17-18 yrs. old — Twelfth grade
-18-22 yrs. old – College
-"""
 def smog_mapping(score: int):
     if score >= 18:
         return "Student"
