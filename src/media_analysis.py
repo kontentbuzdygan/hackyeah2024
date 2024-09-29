@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 from typing import Literal
 
 import cv2
+from deepface import DeepFace
 import easyocr
 from fuzzywuzzy import fuzz
 from openai import Client
@@ -196,3 +197,17 @@ class Analyzer:
             return result > 90
 
         return list(filter(lambda subtitle: not is_duplicate(subtitle), subtitles))
+
+def emotion_analysis(input_path: Path):
+    emotions = []
+
+    for file in sorted(input_path.iterdir()):
+        try:
+            result = DeepFace.analyze(cv2.imread(file), actions = ['emotion'])[0]
+            if result["face_confidence"] >= 0.75:
+                emotions.append(result["emotion"])
+        except ValueError:
+            # no face detected
+            continue
+
+    return emotions

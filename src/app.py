@@ -6,8 +6,11 @@ import streamlit as st
 from moviepy.editor import VideoFileClip
 
 from media_analysis import Analyzer
+import media_analysis
 
-STEP_COUNT = 7
+from pathlib import Path
+
+STEP_COUNT = 8
 
 st.write(
     """
@@ -54,6 +57,10 @@ if video:
     cropped_frames = analyzer.crop_frames(Path(saved_frames.name))
 
     progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Analizowanie emocji…")
+    emotions = media_analysis.emotion_analysis(Path(saved_frames.name))
+
+    progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Oddzielanie napisów…")
     extracted_subtitles = analyzer.extract_subtitles(Path(cropped_frames.name))
 
@@ -86,6 +93,7 @@ if video:
     st.write("## Analiza")
     st.write("### 10 Pytań do filmu")
 
+
     if analysis_results.wyrazenia_kluczowe:
         st.write(
             "\n".join(
@@ -96,6 +104,9 @@ if video:
     else:
         st.write("Brak pytań do wypowiedzi.")
 
+    st.write("### Emocje osoby mówiącej")
+    st.line_chart(emotions)
+    
     st.write("### Grupa docelowa filmu")
     st.write(analysis_results.grupa_docelowa)
 
