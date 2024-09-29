@@ -165,25 +165,21 @@ class Analyzer:
     def analyze_frame(self, frames: Path) -> VisualTags:
         content = [
                 {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Ile osób jest na zdjęciu?"
-                        },
-                    ],
-                },
-            ]
-
-        images = [{
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}",
-                "detail": "low"
-            }
-        } for base64_file in frames.glob("*")]
-
-        content[0]["content"].extend(images)
+            {"type": "text", "text": "Na podstawie klatek z filmu uzupełnij model JSON."}, 
+         ] 
+  
+         content.extend( 
+             ( 
+                  { 
+                     "type": "image_url", 
+                     "image_url": { 
+                         "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}", 
+                         "detail": "low", 
+                     }, 
+                 } 
+                 for base64_file in sorted(frames.iterdir())  # type: ignore 
+             ) 
+         )
 
         result = self.client.beta.chat.completions.parse(
             messages=content,
