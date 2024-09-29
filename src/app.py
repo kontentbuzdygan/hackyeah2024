@@ -13,7 +13,12 @@ from pathlib import Path
 import annotated_text
 from streamlit_extras.tags import tagger_component
 
+import textstat
+import pandas as pd
+import index_mappings
+
 STEP_COUNT = 10
+textstat.set_lang("en")
 
 st.write(
     """
@@ -82,7 +87,7 @@ if video:
 
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Wykrywanie problemów wizualnych…")
-    tags = analyzer.analyze_frame(Path(saved_frames.name))
+    visual_tags = analyzer.analyze_frame(Path(saved_frames.name))
 
     progress_bar.empty()
 
@@ -141,7 +146,7 @@ if video:
     st.write(analysis_results.aspekty_jezykowe.ocena)
 
     st.write("### Problemy wizualne")
-    tag_list = [tag for tag, value in (("Osoby w drugim planie", tags.osoby_w_drugim_planie), ("Odwracanie się", tags.odwracanie_sie), ("Gestykulacja", tags.gestykulacja), ("Mimika", tags.mimika)) if value]
+    tag_list = [tag for tag, value in (("Osoby w drugim planie", visual_tags.osoby_w_drugim_planie), ("Odwracanie się", visual_tags.odwracanie_sie), ("Gestykulacja", visual_tags.gestykulacja), ("Mimika", visual_tags.mimika)) if value]
     if tag_list:
         tagger_component(
             "",
@@ -150,6 +155,23 @@ if video:
         )
     else:
         st.write("Nie znaleziono problemów wizualnych.")
+
+    st.write("### Indeksy czytelności")
+    fog = textstat.gunning_fog(transcription.text)
+    flesch = textstat.flesch_reading_ease(transcription.text)
+    smog = textstat.smog_index(transcription.text)
+    index_table = pd.DataFrame([
+        {
+            "Indeks": "FOG", "Ocena": fog, "Poziom szkolnictwa": index_mappings.fog_mapping(fog)
+        },
+        {
+            "Indeks": "Flesch", "Ocena": flesch, "Poziom szkolnictwa": index_mappings.flesch_mapping(flesch)
+        },
+        {
+            "Indeks": "SMOG", "Ocena": smog, "Poziom szkolnictwa": index_mappings.smog_mapping(smog)
+        },
+    ])
+    st.dataframe(index_table, hide_index=True, use_container_width=True)
 
     st.write("### Sentyment wypowiedzi")
     if analysis_results.sentyment_wypowiedzi:
