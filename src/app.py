@@ -10,7 +10,10 @@ import media_analysis
 
 from pathlib import Path
 
-STEP_COUNT = 8
+import annotated_text
+from streamlit_extras.tags import tagger_component
+
+STEP_COUNT = 10
 
 st.write(
     """
@@ -57,6 +60,10 @@ if video:
     cropped_frames = analyzer.crop_frames(Path(saved_frames.name))
 
     progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Oddzielanie napisów…")
+    extracted_subtitles = analyzer.extract_subtitles(Path(cropped_frames.name))
+
+    progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Analizowanie emocji…")
     emotions = media_analysis.emotion_analysis(Path(saved_frames.name))
 
@@ -72,6 +79,10 @@ if video:
     progress += 1
     progress_bar.progress(progress / STEP_COUNT, "Analizowanie jakości wypodziedzi…")
     analysis_results = analyzer.analyze_transcription(transcription.text)
+
+    progress += 1
+    progress_bar.progress(progress / STEP_COUNT, "Wykrywanie problemów wizualnych…")
+    tags = analyzer.analyze_frame(Path(saved_frames.name))
 
     progress_bar.empty()
 
@@ -106,7 +117,7 @@ if video:
 
     st.write("### Emocje osoby mówiącej")
     st.line_chart(emotions)
-    
+
     st.write("### Grupa docelowa filmu")
     st.write(analysis_results.grupa_docelowa)
 
@@ -124,18 +135,29 @@ if video:
             for tag in analysis_results.aspekty_jezykowe.tagi
         )
     else:
-        tags = "Brak."
+        tags = "brak."
 
     st.write(f"Problemy: {tags}")
     st.write(analysis_results.aspekty_jezykowe.ocena)
+
+    st.write("### Problemy wizualne")
+    tag_list = [tag for tag, value in (("Osoby w drugim planie", tags.osoby_w_drugim_planie), ("Odwracanie się", tags.odwracanie_sie), ("Gestykulacja", tags.gestykulacja), ("Mimika", tags.mimika)) if value]
+    if tag_list:
+        tagger_component(
+            "",
+            tag_list,
+            color_name=["blue", "green", "violet", "red"][:len(tag_list)],
+        )
+    else:
+        st.write("Nie znaleziono problemów wizualnych.")
 
     st.write("### Sentyment wypowiedzi")
     if analysis_results.sentyment_wypowiedzi:
         st.line_chart(
             [sentiment.sentyment for sentiment in analysis_results.sentyment_wypowiedzi]
         )
-        for sentiment in analysis_results.sentyment_wypowiedzi:
-            st.write(f"- „{sentiment.fragment}”: sentyment {sentiment.sentyment}")
+
+        annotated_text.annotated_text([(sentiment.fragment, f"sentyment: {sentiment.sentyment}") for sentiment in analysis_results.sentyment_wypowiedzi])
     else:
         st.write("Nie znaleziono zmian sentymentu w wypowiedzi.")
 

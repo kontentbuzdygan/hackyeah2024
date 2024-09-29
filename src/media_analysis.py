@@ -11,6 +11,7 @@ from fuzzywuzzy import fuzz
 from openai import Client
 from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
+import base64
 
 
 class Tag(BaseModel):
@@ -89,6 +90,20 @@ class AnaysisResults(BaseModel):
         description="Tłumaczenie wypowiedzi na język angielski."
     )
 
+class VisualTags(BaseModel):
+    osoby_w_drugim_planie: bool = Field(
+        description="Czy film zawiera drugoplanowca?"
+    )
+    odwracanie_sie: bool = Field(
+        description="Czy osoba prowadząca odwraca się?"
+    )
+    gestykulacja: bool = Field(
+        description="Czy osoba prowadząca gestykuluje?"
+    )
+    mimika: bool = Field(
+        description="Czy osoba prowadząca używa wyraźnej mimiki?"
+    )
+
 
 class Analyzer:
     def __init__(self, openai_api_key: str):
@@ -147,6 +162,42 @@ class Analyzer:
 
         return message.parsed  # type: ignore
 
+    def analyze_frame(self, frames: Path) -> VisualTags:
+        content = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Ile osób jest na zdjęciu?"
+                        },
+                    ],
+                },
+            ]
+
+        images = [{
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}",
+                "detail": "low"
+            }
+        } for base64_file in frames.glob("*")]
+
+        content[0]["content"].extend(images)
+
+        result = self.client.beta.chat.completions.parse(
+            messages=content,
+            model="gpt-4o-2024-08-06",
+            response_format=VisualTags,
+        )
+
+        message = result.choices[0].message
+
+        if message.refusal is not None:
+            raise Exception(message.refusal)
+
+        return message.parsed  # type: ignore
+
     def get_frames(self, input_path: str):
         temp_frames = TemporaryDirectory()
         vidcap = cv2.VideoCapture(input_path)
@@ -154,7 +205,7 @@ class Analyzer:
         success = True
 
         for i in itertools.count():
-            vidcap.set(cv2.CAP_PROP_POS_MSEC, (i * 3_000))
+            vidcap.set(cv2.CAP_PROP_POS_MSEC, (i * 1_000))
             success, image = vidcap.read()
 
             if not success:

@@ -1,3 +1,4 @@
+deepface~=0.0.0
 easyocr~=1.7.0
 fuzzywuzzy~=0.18.0
 moviepy~=1.0.0
@@ -5,4 +6,7 @@ openai~=1.50.0
 opencv-python~=4.10.0
 pydantic~=2.9.0
 python_dotenv~=1.0.0
+st-annotated-text~=4.0.0
+streamlit-extras~=0.4.0
 streamlit~=1.38.0
+tf-keras~=2.17.0
