@@ -116,7 +116,7 @@ class Analyzer:
                 model="whisper-1",
                 response_format="verbose_json",
                 language="pl",
-                timestamp_granularities=["segment"],
+                timestamp_granularities=["word", "segment"],
             )
 
     def rate_subtitles(self, transcription: str, subtitles: list[str]) -> str:
