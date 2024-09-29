@@ -1,5 +1,5 @@
 # wideobuzdygan
-od kontentbuzdygan
+od ***kontentbuzdygan***
 
 > _Życie jest jak droga
 > idziemy z wieloma ludźmi
