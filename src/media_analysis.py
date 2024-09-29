@@ -2,20 +2,54 @@ import itertools
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Literal
 
 import cv2
+from deepface import DeepFace
 import easyocr
+from fuzzywuzzy import fuzz
 from openai import Client
 from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
 import base64
 
 
+class Tag(BaseModel):
+    tag: Literal[
+        "przerywniki",
+        # "za szybkie tempo",
+        "nadmierne powtórzenia",
+        "zmiana tematu wypowiedzi",
+        "trudne, za długie słowa",
+        "żargon",
+        "obcy język",
+        # "za długa pauza",
+        "za dużo liczb",
+        # "drugi plan",
+        # "odwracanie się",
+        "przekręcenia",
+        # "gestykulacja",
+        "przerywniki",
+        # "mimika",
+        # "za cicho",
+        # "szeptem",
+        "błędne słowa",
+        # "wypowiedź niezgodna z transkrypcją",
+        # "szum",
+        "za długie zdania",
+        "używanie strony biernej",
+        # "akcentowanie",
+        "za dużo liczb",
+        # "mówienie głośniej",
+    ]
+    przyklad: str
+
+
 class AspektyJezykowe(BaseModel):
     ocena: str = Field(
-        description="Ocena aspektów językowych wypowiedzi w nawiązaniu do prostego języka wraz z wyliczeniem wskaźników."
+        description="Ocena aspektów językowych wypowiedzi w nawiązaniu do prostego języka."
     )
-    tag: str = Field(description="Tag powyższej oceny.")
+    tagi: list[Tag] = Field(description="Tagi wypowiedzi z przykładami występowania.")
 
 
 class SentymentWypowiedzi(BaseModel):
@@ -85,16 +119,36 @@ class Analyzer:
                 timestamp_granularities=["segment"],
             )
 
+    def rate_subtitles(self, transcription: str, subtitles: list[str]) -> str:
+        result = self.client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Treść wypowiedzi w filmie:\n{transcription}\n\n"
+                    f"Treść napisów filmu:\n{"\n".join(subtitles)}",
+                },
+                {
+                    "role": "system",
+                    "content": "Czy napisy są zgodne z treścią wypowiedzi? "
+                    "Czy zawierają jakieś błędy lub pomyłki? "
+                    "Napisz krótką informację.",
+                },
+            ],
+            model="gpt-4o-2024-08-06",
+        )
+
+        return result.choices[0].message.content  # type: ignore
+
     def analyze_transcription(self, transcription: str) -> AnaysisResults:
         result = self.client.beta.chat.completions.parse(
             messages=[
                 {
-                    "content": transcription,
                     "role": "user",
+                    "content": transcription,
                 },
                 {
-                    "content": "Na podstawie powyższej transkrypcji wypowiedzi wypełnij model JSON.",
                     "role": "system",
+                    "content": "Na podstawie powyższej transkrypcji wypowiedzi wypełnij model JSON.",
                 },
             ],
             model="gpt-4o-2024-08-06",
@@ -175,8 +229,36 @@ class Analyzer:
         reader = easyocr.Reader(["pl"])
 
         subtitles = [
-            " ".join(reader.readtext(str(input_path / file), detail=0)) for file in sorted(os.listdir(input_path))
+            " ".join(reader.readtext(str(input_path / file), detail=0))
+            for file in sorted(os.listdir(input_path))
         ]
 
-        subtitles = filter(lambda subtitle: subtitle, subtitles)
-        return list(dict.fromkeys(subtitles).keys())
+        subtitles = filter(lambda subtitle: subtitle.strip(), subtitles)
+        previous_subtitle = None
+
+        def is_duplicate(new_subtitle: str) -> bool:
+            nonlocal previous_subtitle
+
+            if previous_subtitle is None:
+                previous_subtitle = new_subtitle
+                return False
+
+            result = fuzz.ratio(previous_subtitle, new_subtitle)
+            previous_subtitle = new_subtitle
+            return result > 90
+
+        return list(filter(lambda subtitle: not is_duplicate(subtitle), subtitles))
+
+def emotion_analysis(input_path: Path):
+    emotions = []
+
+    for file in sorted(input_path.iterdir()):
+        try:
+            result = DeepFace.analyze(cv2.imread(file), actions = ['emotion'])[0]
+            if result["face_confidence"] >= 0.75:
+                emotions.append(result["emotion"])
+        except ValueError:
+            # no face detected
+            continue
+
+    return emotions
