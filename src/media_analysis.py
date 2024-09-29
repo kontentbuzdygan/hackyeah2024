@@ -1,3 +1,4 @@
+import base64
 import itertools
 import os
 from pathlib import Path
@@ -5,13 +6,12 @@ from tempfile import TemporaryDirectory
 from typing import Literal
 
 import cv2
-from deepface import DeepFace
 import easyocr
+from deepface import DeepFace
 from fuzzywuzzy import fuzz
 from openai import Client
 from openai.types.audio import TranscriptionVerbose
 from pydantic import BaseModel, Field
-import base64
 
 
 class Tag(BaseModel):
@@ -90,19 +90,12 @@ class AnaysisResults(BaseModel):
         description="Tłumaczenie wypowiedzi na język angielski."
     )
 
+
 class VisualTags(BaseModel):
-    osoby_w_drugim_planie: bool = Field(
-        description="Czy film zawiera drugoplanowca?"
-    )
-    odwracanie_sie: bool = Field(
-        description="Czy osoba prowadząca odwraca się?"
-    )
-    gestykulacja: bool = Field(
-        description="Czy osoba prowadząca gestykuluje?"
-    )
-    mimika: bool = Field(
-        description="Czy osoba prowadząca używa wyraźnej mimiki?"
-    )
+    osoby_w_drugim_planie: bool = Field(description="Czy film zawiera drugoplanowca?")
+    odwracanie_sie: bool = Field(description="Czy osoba prowadząca odwraca się?")
+    gestykulacja: bool = Field(description="Czy osoba prowadząca gestykuluje?")
+    mimika: bool = Field(description="Czy osoba prowadząca używa wyraźnej mimiki?")
 
 
 class Analyzer:
@@ -116,7 +109,7 @@ class Analyzer:
                 model="whisper-1",
                 response_format="verbose_json",
                 language="pl",
-                timestamp_granularities=["segment"],
+                timestamp_granularities=["word", "segment"],
             )
 
     def rate_subtitles(self, transcription: str, subtitles: list[str]) -> str:
@@ -164,29 +157,29 @@ class Analyzer:
 
     def analyze_frame(self, frames: Path) -> VisualTags:
         content = [
+            {"type": "text", "text": "Ile osób jest na zdjęciu?"},
+        ]
+
+        content.extend(
+            (
                 {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Ile osób jest na zdjęciu?"
-                        },
-                    ],
-                },
-            ]
-
-        images = [{
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}",
-                "detail": "low"
-            }
-        } for base64_file in frames.glob("*")]
-
-        content[0]["content"].extend(images)
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{base64.b64encode(open(base64_file, "rb").read()).decode()}",
+                        "detail": "low",
+                    },
+                }
+                for base64_file in sorted(frames.iterdir())  # type: ignore
+            )
+        )
 
         result = self.client.beta.chat.completions.parse(
-            messages=content,
+            messages=[
+                {
+                    "role": "system",
+                    "content": content,
+                },  # type: ignore
+            ],
             model="gpt-4o-2024-08-06",
             response_format=VisualTags,
         )
@@ -249,12 +242,13 @@ class Analyzer:
 
         return list(filter(lambda subtitle: not is_duplicate(subtitle), subtitles))
 
+
 def emotion_analysis(input_path: Path):
     emotions = []
 
     for file in sorted(input_path.iterdir()):
         try:
-            result = DeepFace.analyze(cv2.imread(file), actions = ['emotion'])[0]
+            result = DeepFace.analyze(cv2.imread(str(file)), actions=["emotion"])[0]
             if result["face_confidence"] >= 0.75:
                 emotions.append(result["emotion"])
         except ValueError:
