@@ -182,7 +182,12 @@ class Analyzer:
          )
 
         result = self.client.beta.chat.completions.parse(
-            messages=content,
+            messages=[ 
+                 { 
+                     "role": "system", 
+                     "content": content, 
+                 },  # type: ignore 
+             ],
             model="gpt-4o-2024-08-06",
             response_format=VisualTags,
         )
