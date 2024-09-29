@@ -183,7 +183,7 @@ if videos:
             st.write("Brak pytań do wypowiedzi.")
 
     st.write("### Emocje osoby mówiącej")
-    for emotions in emotions:
+    for i, emotions in enumerate(emotions):
         if i > 0:
             st.divider()
 
